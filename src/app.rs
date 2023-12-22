@@ -1,12 +1,23 @@
+use poll_promise::Promise;
+
+use crate::Trame;
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct TemplateApp {
     // Example stuff:
     label: String,
-
+    pub dropped_files: Vec<egui::DroppedFile>,
+    #[serde(skip)]
+    pub picked_path: Option<String>,
     #[serde(skip)] // This how you opt-out of serialization of a field
     value: f32,
+    #[serde(skip)]
+    pub trames: Vec<Trame>,
+    #[serde(skip)]
+    pub file_upload: Option<Promise<Option<(String, String)>>>,
+    pub trame_index: i64,
 }
 
 impl Default for TemplateApp {
@@ -15,6 +26,11 @@ impl Default for TemplateApp {
             // Example stuff:
             label: "Hello World!".to_owned(),
             value: 2.7,
+            dropped_files: Vec::<egui::DroppedFile>::default(),
+            picked_path: None,
+            file_upload: None,
+            trames: Vec::<Trame>::default(),
+            trame_index: -1.0 as i64,
         }
     }
 }
@@ -64,7 +80,6 @@ impl eframe::App for TemplateApp {
                 egui::widgets::global_dark_light_mode_buttons(ui);
             });
         });
-
         egui::CentralPanel::default().show(ctx, |ui| {
             // The central panel the region left after adding TopPanel's and SidePanel's
             ui.heading("eframe template");
@@ -86,6 +101,7 @@ impl eframe::App for TemplateApp {
                 "Source code."
             ));
 
+            self.render_uploader(ctx, ui);
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                 powered_by_egui_and_eframe(ui);
                 egui::warn_if_debug_build(ui);
